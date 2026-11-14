@@ -9,9 +9,9 @@ jobs:
       matrix:
         python: ['3.10', '3.12']
     env:
-      CI_EVIDENCE_DIR: ${{ runner.temp }}/agent-paper-writing-checks
-      PROFILE_TEST_ARTIFACT_DIR: ${{ runner.temp }}/agent-paper-writing-checks/profile
-      PAPER_TEST_ARTIFACT_DIR: ${{ runner.temp }}/agent-paper-writing-checks/paper
+      CI_EVIDENCE_DIR: ${{ github.workspace }}/../agent-paper-writing-checks
+      PROFILE_TEST_ARTIFACT_DIR: ${{ github.workspace }}/../agent-paper-writing-checks/profile
+      PAPER_TEST_ARTIFACT_DIR: ${{ github.workspace }}/../agent-paper-writing-checks/paper
       PAPER_TEST_REQUIRE_REAL_BUILD: '1'
     steps:
       - uses: actions/checkout@v4
