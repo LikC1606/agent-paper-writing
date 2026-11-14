@@ -9,9 +9,6 @@ jobs:
       matrix:
         python: ['3.10', '3.12']
     env:
-      CI_EVIDENCE_DIR: ${{ github.workspace }}/../agent-paper-writing-checks
-      PROFILE_TEST_ARTIFACT_DIR: ${{ github.workspace }}/../agent-paper-writing-checks/profile
-      PAPER_TEST_ARTIFACT_DIR: ${{ github.workspace }}/../agent-paper-writing-checks/paper
       PAPER_TEST_REQUIRE_REAL_BUILD: '1'
     steps:
       - uses: actions/checkout@v4
@@ -20,6 +17,8 @@ jobs:
           python-version: ${{ matrix.python }}
       - name: Install the real PDF toolchain
         shell: bash
+        env:
+          CI_EVIDENCE_DIR: ${{ runner.temp }}/agent-paper-writing-checks
         run: |
           mkdir -p "$CI_EVIDENCE_DIR"
           cat > "$CI_EVIDENCE_DIR/commands.txt" <<'COMMANDS'
@@ -43,13 +42,17 @@ jobs:
           } 2>&1 | tee "$CI_EVIDENCE_DIR/toolchain.log"
       - name: Run all tests including the required real PDF build
         shell: bash
+        env:
+          CI_EVIDENCE_DIR: ${{ runner.temp }}/agent-paper-writing-checks
+          PROFILE_TEST_ARTIFACT_DIR: ${{ runner.temp }}/agent-paper-writing-checks/profile
+          PAPER_TEST_ARTIFACT_DIR: ${{ runner.temp }}/agent-paper-writing-checks/paper
         run: python -m unittest discover -s tests -v 2>&1 | tee "$CI_EVIDENCE_DIR/unittest.log"
       - name: Preserve test evidence even when a step fails
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: writing-checks-python-${{ matrix.python }}
-          path: ${{ env.CI_EVIDENCE_DIR }}
+          path: ${{ runner.temp }}/agent-paper-writing-checks
           include-hidden-files: true
           if-no-files-found: warn
           retention-days: 14
