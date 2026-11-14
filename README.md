@@ -83,4 +83,4 @@ python3 -m unittest discover -s tests -v
 
 验证范围和实际结果见 [verification.md](verification.md)。
 
-[逐条测试说明](docs/testing.md) 将 P01–P13 对应到自动检查和真实 agent 验收场景，并说明真实编译依赖、跳过条件及测试现场保存方式。
+[逐条测试说明](docs/testing.md) 包含 51 项自动检查、P01–P13 的真实客户端验收命令，以及 CI 的编译依赖和测试现场保存方式；实际页面查看与辅助续跑分别记录。

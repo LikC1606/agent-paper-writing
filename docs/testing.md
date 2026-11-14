@@ -11,7 +11,7 @@ python3 -c 'import os, sys; print(sys.executable); print(os.getcwd()); print(sys
 python3 -m unittest discover -s tests -v
 ```
 
-本轮新增 17 项：`test_paper.py` 的 12 项工具行为测试、`test_paper_integration.py` 的 1 项真实编译集成，以及 `test_requirement_contract.py` 的 4 项原文、打包与迁移测试。本机共 38 项通过。
+当前全仓 51 项：原有 38 项工具、真实编译、安装和约定测试，加上 5 项真实场景材料测试及 8 项验收运行器测试。后两类分别验证材料确实可执行、结果可核对，以及进程失败和审查记录的保存方式，不冒充模型行为。
 
 真实集成用已有 `pdflatex` 和 Poppler `pdftoppm` 编译两页小论文，核对新 PDF、PNG、两遍编译记录和待视觉检查状态。本地依赖缺失时该项明确 `skip`，其他测试继续运行。单独运行：
 
@@ -33,6 +33,7 @@ CI 无论成功或失败都上传 `writing-checks-python-<版本>` artifact，�
 mkdir -p /absolute/evidence/new-round
 PROFILE_TEST_ARTIFACT_DIR=/absolute/evidence/new-round/profile \
 PAPER_TEST_ARTIFACT_DIR=/absolute/evidence/new-round/paper \
+AGENT_TEST_ARTIFACT_DIR=/absolute/evidence/new-round/agent \
 python3 -m unittest discover -s tests -v \
   > /absolute/evidence/new-round/unittest.log 2>&1
 ```
@@ -73,3 +74,28 @@ python3 -m unittest discover -s tests -v \
 4. 每个条目分别登记通过、失败或未验证、证据位置及未完成项。缺依赖、未查看或判断无法确认时保留未验证；修复后新轮次补测，旧记录不覆盖。
 
 可以在 Codex、Claude Code、Cursor、Gemini CLI 和 Antigravity 复用同一套场景。自动 unittest 不发起模型请求，也不把文字存在、编译成功或模拟表单当成 agent 遵循规则的证明。
+
+## 执行真实客户端场景
+
+当前全仓 51 项自动测试：此前 38 项，加上 5 项场景材料测试和 8 项验收运行器测试。`tests/agent_projects.py` 为 P01–P13 准备真实可编译的合成论文、原始计数、操作循环计时、未运行消融及旧要求。P09 包含可编辑绘图源，默认重绘与原图字节相同；改字体可以直接重绘，不能借此杜撰缺失的坐标或测量结果。
+
+```bash
+python3 tests/agent_harness.py prepare --case P09 --client claude \
+  --output-root /absolute/private-evidence/new-round \
+  --companion /absolute/agent-engineering
+python3 tests/agent_harness.py run --run /absolute/private-evidence/new-round/准备输出的目录 \
+  --timeout 300 --budget 1
+```
+
+`--companion` 可选。准备阶段保留场景与运行器源码、安装记录、提示、评分条件、初始清单和 `before/`，评分条件与已知答案不放进 agent 项目；执行阶段保留客户端命令、版本、cwd、双日志和前后哈希。沿用现有模型和认证，不修改全局设置。真实调用使用客户端服务，应先小样本验证并设置适当预算；Claude 的 `--budget` 限制该次调用费用，其他客户端使用自身设置。
+
+正常退出只表示 `awaiting_review`。检查者应逐项看工具轨迹、论文改动与数值来源，并实际打开最终页面，再填写生成的 `review-template.json`，另存为 `completed-review.json`。每个通过/禁止条件必须给出 `pass`、`fail` 或 `unverified`、具体说明和本轮真实证据文件的相对路径。
+
+```bash
+python3 tests/agent_harness.py review --run /absolute/private-evidence/new-round/准备输出的目录 \
+  --record /absolute/private-evidence/new-round/准备输出的目录/completed-review.json
+```
+
+结果分别保存 `criteria_status`、`execution_status` 和整体状态。条目都满足但进程超时或触及预算时，整体仍为 `unverified`；保护历史改变时整体为 `failed`。不会以退出零、生成 PNG 或填写表单自动给模型判通过。修复后新建轮次；辅助提示后的续跑独立标注，原失败、未完成页面与历史评审均保留。
+
+Codex、Claude、Gemini 和 Antigravity 有命令适配；Cursor 需通过 `--command-json` 提供已核实参数。运行目录是合成测试现场，权限和沙箱由客户端执行。当前真实结果、客户端可用性及 CI 记录见 [验证记录](../verification.md)。

@@ -46,6 +46,7 @@ jobs:
           CI_EVIDENCE_DIR: ${{ runner.temp }}/agent-paper-writing-checks
           PROFILE_TEST_ARTIFACT_DIR: ${{ runner.temp }}/agent-paper-writing-checks/profile
           PAPER_TEST_ARTIFACT_DIR: ${{ runner.temp }}/agent-paper-writing-checks/paper
+          AGENT_TEST_ARTIFACT_DIR: ${{ runner.temp }}/agent-paper-writing-checks/agent
         run: python -m unittest discover -s tests -v 2>&1 | tee "$CI_EVIDENCE_DIR/unittest.log"
       - name: Preserve test evidence even when a step fails
         if: always()
