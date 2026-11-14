@@ -12,6 +12,8 @@
 
 Cursor 的 `.mdc` 入口、`alwaysApply: true` 和文件安装状态已检查；本机缺少 Cursor 客户端，客户端行为尚未实测。
 
+另从两个独立的新克隆目录执行真实安装命令，验证同一研究项目中的双 profile 检查与重复安装。实验 profile 完成命令执行、失败补跑、产物和经验留存后，卸载该 profile，写作 profile 仍通过内容检查；实验运行历史也完整保留。安装副本中的论文工具入口可以直接使用。
+
 ## 论文工具
 
 `python3 -m unittest discover -s tests -p test_paper.py -v`：8 项通过。
