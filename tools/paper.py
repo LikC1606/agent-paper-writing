@@ -210,7 +210,7 @@ def build(args: argparse.Namespace) -> dict:
                     "pages": {image.name: digest(image) for image in images}}
         write_json(revision / "render-manifest.json", manifest)
         template = {
-            "reviewer": "", "pdf_sha256": manifest["pdf_sha256"],
+            "revision_id": revision.name, "reviewer": "", "pdf_sha256": manifest["pdf_sha256"],
             "pages": [{"page": image.name, "status": "unreviewed",
                        "checks": {check: None for check in CHECKS}, "findings": ""} for image in images],
             "notes": "逐页实际查看后填写。检查项填 true/false；发现写明实际观察及剩余问题。",
@@ -244,10 +244,14 @@ def review(args: argparse.Namespace) -> dict:
     revision = Path(args.revision).expanduser().resolve()
     manifest = validate_artifacts(revision)
     record = read_json(Path(args.record).expanduser())
-    if not isinstance(record.get("reviewer"), str) or not record["reviewer"].strip():
-        raise ValueError("检查记录必须写明 reviewer")
     if record.get("pdf_sha256") != manifest["pdf_sha256"]:
         raise ValueError("检查记录与该轮 PDF 的哈希不一致")
+    if not record.get("revision_id"):
+        raise ValueError("检查记录缺少 revision_id；旧表单请新建轮次并重新逐页检查")
+    if record["revision_id"] != revision.name:
+        raise ValueError("检查记录属于其他轮次；请使用当前轮次的表单重新逐页检查")
+    if not isinstance(record.get("reviewer"), str) or not record["reviewer"].strip():
+        raise ValueError("检查记录必须写明 reviewer")
     entries = record.get("pages")
     if not isinstance(entries, list) or len(entries) != len(manifest["pages"]):
         raise ValueError("必须逐页填写全部渲染页面")

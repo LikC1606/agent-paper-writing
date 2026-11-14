@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from contextlib import nullcontext
 import hashlib
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -18,9 +20,15 @@ ALL_AGENTS = ("codex", "claude", "cursor", "gemini", "antigravity")
 
 class ProfileInstallerTests(unittest.TestCase):
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory()
-        self.addCleanup(self.temporary.cleanup)
-        self.root = Path(self.temporary.name)
+        artifacts = os.environ.get("PROFILE_TEST_ARTIFACT_DIR")
+        if artifacts:
+            output = Path(artifacts)
+            output.mkdir(parents=True, exist_ok=True)
+            self.root = Path(tempfile.mkdtemp(prefix=self._testMethodName + "-", dir=output))
+        else:
+            self.temporary = tempfile.TemporaryDirectory()
+            self.addCleanup(self.temporary.cleanup)
+            self.root = Path(self.temporary.name)
         self.project = self.root / "project"
         self.project.mkdir()
         self.engineering = self.make_source("agent-engineering", "research-engineering")
@@ -41,8 +49,12 @@ class ProfileInstallerTests(unittest.TestCase):
         return source
 
     def run_cli(self, source, command, *extra, expected=0, project=None):
-        completed = subprocess.run([sys.executable, str(source / "tools/profile.py"), command,
-                                    "--project", str(project or self.project), *extra], capture_output=True, text=True)
+        argv = [sys.executable, str(source / "tools/profile.py"), command,
+                "--project", str(project or self.project), *extra]
+        completed = subprocess.run(argv, capture_output=True, text=True)
+        with (self.root / "cli-calls.jsonl").open("a", encoding="utf-8") as stream:
+            stream.write(json.dumps({"argv": argv, "returncode": completed.returncode,
+                                     "stdout": completed.stdout, "stderr": completed.stderr}) + "\n")
         self.assertEqual(completed.returncode, expected, completed.stdout + completed.stderr)
         return json.loads(completed.stdout)
 
@@ -50,6 +62,11 @@ class ProfileInstallerTests(unittest.TestCase):
         project = project or self.project
         return {path.relative_to(project).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
                 for path in project.rglob("*") if path.is_file()}
+
+    def temporary_project(self):
+        if os.environ.get("PROFILE_TEST_ARTIFACT_DIR"):
+            return nullcontext(tempfile.mkdtemp(prefix="subcase-", dir=self.root))
+        return tempfile.TemporaryDirectory()
 
     def history_directories(self, profile_id="agent-engineering"):
         parent = self.project / ".agent-experience/installations" / profile_id
@@ -110,7 +127,7 @@ class ProfileInstallerTests(unittest.TestCase):
                  ("claude", ".claude/skills/research-engineering/assets/example.md"),
                  ("gemini", "GEMINI.md"), ("antigravity", "AGENTS.md"))
         for agent, target in cases:
-            with self.subTest(agent=agent, target=target), tempfile.TemporaryDirectory() as temporary:
+            with self.subTest(agent=agent, target=target), self.temporary_project() as temporary:
                 project = Path(temporary)
                 self.run_cli(self.engineering, "install", "--agents", agent, project=project)
                 path = project / target
@@ -132,7 +149,7 @@ class ProfileInstallerTests(unittest.TestCase):
     def test_unowned_files_and_conflicting_markers_are_preserved(self):
         destinations = (".agents/skills/research-engineering/SKILL.md", "AGENTS.md")
         for destination in destinations:
-            with self.subTest(destination=destination), tempfile.TemporaryDirectory() as temporary:
+            with self.subTest(destination=destination), self.temporary_project() as temporary:
                 project = Path(temporary)
                 target = project / destination
                 target.parent.mkdir(parents=True, exist_ok=True)
@@ -218,7 +235,7 @@ class ProfileInstallerTests(unittest.TestCase):
 
     def test_google_agents_install_upgrade_and_restore_original_entries(self):
         for agent, entry in (("gemini", "GEMINI.md"), ("antigravity", "AGENTS.md")):
-            with self.subTest(agent=agent), tempfile.TemporaryDirectory() as temporary:
+            with self.subTest(agent=agent), self.temporary_project() as temporary:
                 project = Path(temporary)
                 originals = {"AGENTS.md": "User AGENTS with no final newline".encode(),
                              "GEMINI.md": "用户的 Gemini 规则。\n".encode()}
@@ -254,7 +271,7 @@ class ProfileInstallerTests(unittest.TestCase):
                   ("antigravity", "codex", "gemini"),
                   ("gemini", "antigravity", "codex"))
         for order in orders:
-            with self.subTest(order=order), tempfile.TemporaryDirectory() as temporary:
+            with self.subTest(order=order), self.temporary_project() as temporary:
                 project = Path(temporary)
                 originals = {"AGENTS.md": b"User AGENTS without final newline",
                              "GEMINI.md": b"User Gemini settings.\n"}

@@ -52,6 +52,8 @@ python3 .agent-experience/agent-paper-writing/tools/paper.py build --project . -
 
 `build` 成功返回 `awaiting_visual_review`。先打开输出的 PDF 或 `pages/page-*.png`，逐页查看；再复制本轮 `review-template.json` 为自己的检查记录，填入检查者和逐页发现。七项检查为尺寸、位置、字体、留白、对齐、可读性及论证对应关系，填写 JSON 布尔值 `true` / `false`；有任何未通过项，该页 `status` 写 `fail`，全部通过才写 `pass`。
 
+保留表单中本轮的 `revision_id`。即使两轮 PDF 字节相同，也不能提交上一轮的检查记录。没有该字段的旧表单须新建轮次并重新查看；已经归档的旧状态仍可读取，历史文件不改写。
+
 ```bash
 python3 .agent-experience/agent-paper-writing/tools/paper.py review --revision .paper-runs/本轮目录 --record /path/to/completed-review.json
 python3 .agent-experience/agent-paper-writing/tools/paper.py status --revision .paper-runs/本轮目录
@@ -80,3 +82,5 @@ python3 -m unittest discover -s tests -v
 ```
 
 验证范围和实际结果见 [verification.md](verification.md)。
+
+[逐条测试说明](docs/testing.md) 将 P01–P13 对应到自动检查和真实 agent 验收场景，并说明真实编译依赖、跳过条件及测试现场保存方式。
