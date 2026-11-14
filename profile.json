@@ -1,0 +1,6 @@
+{
+  "id": "agent-paper-writing",
+  "skill": "paper-writing",
+  "title": "论文写作经验",
+  "rules": "skills/paper-writing/references/rules.md"
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "论文写作经验"
+  short_description: "围绕研究问题组织论文证据和叙事，检查图表、审稿修改与每轮编译后的视觉结果"
+  default_prompt: "使用 $paper-writing 梳理这篇论文的研究问题、证据和故事，再完成本轮修改与编译视觉检查。"

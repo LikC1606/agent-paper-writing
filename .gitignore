@@ -1,0 +1,6 @@
+__pycache__/
+*.py[cod]
+.venv/
+.paper-runs/
+.agent-experience/
+.DS_Store
