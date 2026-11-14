@@ -13,6 +13,7 @@ import unittest
 
 
 INSTALLER = Path(__file__).resolve().parents[1] / "tools" / "profile.py"
+ALL_AGENTS = ("codex", "claude", "cursor", "gemini", "antigravity")
 
 
 class ProfileInstallerTests(unittest.TestCase):
@@ -45,9 +46,10 @@ class ProfileInstallerTests(unittest.TestCase):
         self.assertEqual(completed.returncode, expected, completed.stdout + completed.stderr)
         return json.loads(completed.stdout)
 
-    def project_snapshot(self):
-        return {path.relative_to(self.project).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
-                for path in self.project.rglob("*") if path.is_file()}
+    def project_snapshot(self, project=None):
+        project = project or self.project
+        return {path.relative_to(project).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
+                for path in project.rglob("*") if path.is_file()}
 
     def history_directories(self, profile_id="agent-engineering"):
         parent = self.project / ".agent-experience/installations" / profile_id
@@ -56,14 +58,20 @@ class ProfileInstallerTests(unittest.TestCase):
     def test_profiles_coexist_and_repeated_install_is_unchanged(self):
         (self.project / "AGENTS.md").write_text("User rules.\n")
         (self.project / "CLAUDE.md").write_text("User Claude rules.\n")
-        self.run_cli(self.engineering, "install")
+        (self.project / "GEMINI.md").write_text("User Gemini rules.\n")
+        installed = self.run_cli(self.engineering, "install")
+        self.assertEqual(set(installed["installed_agents"]), set(ALL_AGENTS))
         self.run_cli(self.writing, "install")
         self.run_cli(self.engineering, "check")
         self.run_cli(self.writing, "check")
-        for name in ("AGENTS.md", "CLAUDE.md"):
+        for name in ("AGENTS.md", "CLAUDE.md", "GEMINI.md"):
             text = (self.project / name).read_text()
             self.assertEqual(text.count("agent-experience:agent-engineering:start"), 1)
             self.assertEqual(text.count("agent-experience:agent-paper-writing:start"), 1)
+        gemini = (self.project / "GEMINI.md").read_text()
+        self.assertIn("@./.agent-experience/agent-engineering/skills/research-engineering/references/rules.md", gemini)
+        self.assertIn("@./.agent-experience/agent-paper-writing/skills/paper-writing/references/rules.md", gemini)
+        self.assertNotIn("Understand the task before running it.", gemini)
         for directory in (".agents", ".claude", ".cursor"):
             for skill in ("research-engineering", "paper-writing"):
                 self.assertTrue((self.project / directory / "skills" / skill / "assets/example.md").is_file())
@@ -98,19 +106,28 @@ class ProfileInstallerTests(unittest.TestCase):
         self.assertEqual((self.project / "AGENTS.md").read_text(), user_text)
 
     def test_manual_edits_block_upgrade_and_uninstall_without_writes(self):
-        for target in ("AGENTS.md", ".claude/skills/research-engineering/assets/example.md"):
-            with self.subTest(target=target), tempfile.TemporaryDirectory() as temporary:
+        cases = (("codex", "AGENTS.md"),
+                 ("claude", ".claude/skills/research-engineering/assets/example.md"),
+                 ("gemini", "GEMINI.md"), ("antigravity", "AGENTS.md"))
+        for agent, target in cases:
+            with self.subTest(agent=agent, target=target), tempfile.TemporaryDirectory() as temporary:
                 project = Path(temporary)
-                self.run_cli(self.engineering, "install", project=project)
+                self.run_cli(self.engineering, "install", "--agents", agent, project=project)
                 path = project / target
-                path.write_text(path.read_text().replace("Understand the task", "User changed the task")
-                                if target == "AGENTS.md" else "User asset replacement.\n")
-                before = {item.relative_to(project).as_posix(): item.read_bytes() for item in project.rglob("*") if item.is_file()}
-                result = self.run_cli(self.engineering, "install", expected=1, project=project)
+                original = path.read_text()
+                if target == "AGENTS.md":
+                    modified = original.replace("Understand the task", "User changed the task")
+                elif target == "GEMINI.md":
+                    modified = original.replace("@./.agent-experience/", "@./user-experience/")
+                else:
+                    modified = "User asset replacement.\n"
+                self.assertNotEqual(original, modified)
+                path.write_text(modified)
+                before = self.project_snapshot(project)
+                result = self.run_cli(self.engineering, "install", "--agents", agent, expected=1, project=project)
                 self.assertIn("preserving", result["error"].lower())
-                self.run_cli(self.engineering, "uninstall", expected=1, project=project)
-                after = {item.relative_to(project).as_posix(): item.read_bytes() for item in project.rglob("*") if item.is_file()}
-                self.assertEqual(before, after)
+                self.run_cli(self.engineering, "uninstall", "--agents", agent, expected=1, project=project)
+                self.assertEqual(before, self.project_snapshot(project))
 
     def test_unowned_files_and_conflicting_markers_are_preserved(self):
         destinations = (".agents/skills/research-engineering/SKILL.md", "AGENTS.md")
@@ -184,13 +201,133 @@ class ProfileInstallerTests(unittest.TestCase):
     def test_partial_uninstall_retains_shared_tools_until_last_platform(self):
         self.run_cli(self.engineering, "install")
         self.run_cli(self.engineering, "uninstall", "--agents", "codex")
+        self.run_cli(self.engineering, "check", "--agents", "claude", "cursor", "gemini", "antigravity")
+        self.assertTrue((self.project / ".agent-experience/agent-engineering/tools/profile.py").is_file())
+        self.assertTrue((self.project / ".agents/skills/research-engineering/SKILL.md").is_file())
+        self.assertIn("agent-experience:agent-engineering:start", (self.project / "AGENTS.md").read_text())
+        self.run_cli(self.engineering, "uninstall", "--agents", "gemini", "antigravity")
         self.run_cli(self.engineering, "check", "--agents", "claude", "cursor")
+        self.assertFalse((self.project / ".agents/skills/research-engineering/SKILL.md").exists())
         self.assertTrue((self.project / ".agent-experience/agent-engineering/tools/profile.py").is_file())
         self.run_cli(self.engineering, "uninstall", "--agents", "claude", "cursor")
         self.assertFalse((self.project / ".agent-experience/agent-engineering").exists())
         before = self.project_snapshot()
         result = self.run_cli(self.engineering, "uninstall")
         self.assertFalse(result["changed"])
+        self.assertEqual(before, self.project_snapshot())
+
+    def test_google_agents_install_upgrade_and_restore_original_entries(self):
+        for agent, entry in (("gemini", "GEMINI.md"), ("antigravity", "AGENTS.md")):
+            with self.subTest(agent=agent), tempfile.TemporaryDirectory() as temporary:
+                project = Path(temporary)
+                originals = {"AGENTS.md": "User AGENTS with no final newline".encode(),
+                             "GEMINI.md": "用户的 Gemini 规则。\n".encode()}
+                for name, content in originals.items():
+                    (project / name).write_bytes(content)
+                self.run_cli(self.engineering, "install", "--agents", agent, project=project)
+                self.run_cli(self.engineering, "check", "--agents", agent, project=project)
+                other_entry = "AGENTS.md" if entry == "GEMINI.md" else "GEMINI.md"
+                self.assertEqual((project / other_entry).read_bytes(), originals[other_entry])
+                self.assertIn("agent-experience:agent-engineering:start", (project / entry).read_text())
+                rules = self.engineering / "skills/research-engineering/references/rules.md"
+                updated_rules = f"Updated workflow for {agent}.\n"
+                rules.write_text(updated_rules)
+                upgraded = self.run_cli(self.engineering, "install", "--agents", agent, project=project)
+                self.assertTrue(upgraded["changed"])
+                self.run_cli(self.engineering, "check", "--agents", agent, project=project)
+                installed_rules = project / ".agents/skills/research-engineering/references/rules.md"
+                self.assertEqual(installed_rules.read_text(), updated_rules)
+                if agent == "gemini":
+                    gemini = (project / entry).read_text()
+                    self.assertIn("@./.agent-experience/agent-engineering/skills/research-engineering/references/rules.md", gemini)
+                    self.assertNotIn(updated_rules.strip(), gemini)
+                else:
+                    self.assertIn(updated_rules.strip(), (project / entry).read_text())
+                self.run_cli(self.engineering, "uninstall", "--agents", agent, project=project)
+                for name, content in originals.items():
+                    self.assertEqual((project / name).read_bytes(), content)
+                self.assertFalse((project / ".agents/skills/research-engineering").exists())
+                self.assertFalse((project / ".agent-experience/agent-engineering").exists())
+
+    def test_shared_google_resources_survive_distinct_uninstall_orders(self):
+        orders = (("codex", "gemini", "antigravity"),
+                  ("antigravity", "codex", "gemini"),
+                  ("gemini", "antigravity", "codex"))
+        for order in orders:
+            with self.subTest(order=order), tempfile.TemporaryDirectory() as temporary:
+                project = Path(temporary)
+                originals = {"AGENTS.md": b"User AGENTS without final newline",
+                             "GEMINI.md": b"User Gemini settings.\n"}
+                for name, content in originals.items():
+                    (project / name).write_bytes(content)
+                self.run_cli(self.writing, "install", project=project)
+                self.run_cli(self.engineering, "install", "--agents", *order, project=project)
+                remaining = set(order)
+                for agent in order:
+                    self.run_cli(self.engineering, "uninstall", "--agents", agent, project=project)
+                    remaining.remove(agent)
+                    self.run_cli(self.writing, "check", project=project)
+                    shared_skill = project / ".agents/skills/research-engineering/SKILL.md"
+                    self.assertEqual(shared_skill.exists(), bool(remaining))
+                    snapshot = project / ".agent-experience/agent-engineering/tools/profile.py"
+                    self.assertEqual(snapshot.exists(), bool(remaining))
+                    for entry, users in (("AGENTS.md", {"codex", "antigravity"}), ("GEMINI.md", {"gemini"})):
+                        text = (project / entry).read_text()
+                        self.assertEqual("agent-experience:agent-engineering:start" in text, bool(remaining & users))
+                        self.assertEqual(text.count("agent-experience:agent-paper-writing:start"), 1)
+                    if remaining:
+                        self.run_cli(self.engineering, "check", "--agents", *sorted(remaining), project=project)
+                self.run_cli(self.writing, "uninstall", project=project)
+                for name, content in originals.items():
+                    self.assertEqual((project / name).read_bytes(), content)
+
+    def test_three_platform_version_one_state_expands_incrementally_to_five(self):
+        self.run_cli(self.engineering, "install", "--agents", "codex", "claude", "cursor")
+        state_path = self.project / ".agent-experience/installations/agent-engineering/state.json"
+        old_state = json.loads(state_path.read_text())
+        self.assertEqual(old_state["version"], 1)
+        self.assertEqual(set(old_state["agents"]), {"codex", "claude", "cursor"})
+        original_entries = {name: (self.project / name).read_bytes() for name in ("AGENTS.md", "CLAUDE.md")}
+        previous_history = self.history_directories()
+        self.run_cli(self.engineering, "install", "--agents", "gemini", "antigravity")
+        self.run_cli(self.engineering, "check")
+        new_state = json.loads(state_path.read_text())
+        self.assertEqual(set(new_state["agents"]), set(ALL_AGENTS))
+        for name, content in original_entries.items():
+            self.assertEqual((self.project / name).read_bytes(), content)
+        for name, checksum in old_state["files"].items():
+            self.assertEqual(new_state["files"][name], checksum)
+        for name, block in old_state["blocks"].items():
+            self.assertEqual(new_state["blocks"][name], block)
+        self.assertEqual(len(self.history_directories()), len(previous_history) + 1)
+        before = self.project_snapshot()
+        self.assertFalse(self.run_cli(self.engineering, "install")["changed"])
+        self.assertEqual(before, self.project_snapshot())
+
+    def test_antigravity_agents_byte_limit_preserves_rejected_install_and_check(self):
+        self.run_cli(self.engineering, "install", "--agents", "antigravity")
+        path = self.project / "AGENTS.md"
+        installed = path.read_bytes()
+        padding_bytes = 24000 - len(installed)
+        self.assertGreater(padding_bytes, 0)
+        padding = ("界" * (padding_bytes // 3)).encode() + b"x" * (padding_bytes % 3)
+        path.write_bytes(installed + padding)
+        self.assertEqual(path.stat().st_size, 24000)
+        self.run_cli(self.engineering, "check", "--agents", "antigravity")
+        before = self.project_snapshot()
+        self.assertFalse(self.run_cli(self.engineering, "install", "--agents", "antigravity")["changed"])
+        self.assertEqual(before, self.project_snapshot())
+        rules = self.engineering / "skills/research-engineering/references/rules.md"
+        rules.write_text(rules.read_text().rstrip("\n") + "!\n")
+        before = self.project_snapshot()
+        self.run_cli(self.engineering, "install", "--agents", "antigravity", expected=1)
+        self.assertEqual(before, self.project_snapshot())
+        path.write_bytes(path.read_bytes() + b"!")
+        self.assertEqual(path.stat().st_size, 24001)
+        before = self.project_snapshot()
+        checked = self.run_cli(self.engineering, "check", "--agents", "antigravity", expected=1)
+        self.assertTrue(any("AGENTS.md" in message and "24000" in message for message in checked["errors"]))
+        self.run_cli(self.engineering, "install", "--agents", "antigravity", expected=1)
         self.assertEqual(before, self.project_snapshot())
 
 

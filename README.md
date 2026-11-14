@@ -1,6 +1,6 @@
 # 论文写作经验
 
-把个人的论文写作要求安装到具体研究项目，使 Codex、Claude Code 和 Cursor 使用同一份规则。内容包括原始 13 条约定、写作 Skill、工作流程、参考资料、记录模板，以及保存编译和视觉检查证据的工具。
+把个人的论文写作要求安装到具体研究项目，使 Codex、Claude Code、Cursor、Google Gemini CLI 和 Google Antigravity 使用同一份规则。内容包括原始 13 条约定、写作 Skill、工作流程、参考资料、记录模板，以及保存编译和视觉检查证据的工具。
 
 `clone` 下载经验仓库；对论文项目执行 `install` 后，才会生成该项目的 agent 入口。每个需要这些规则的研究项目分别安装，范围限于项目。
 
@@ -11,18 +11,20 @@
 ```bash
 git clone https://github.com/LikC1606/agent-paper-writing.git
 cd agent-paper-writing
-python3 tools/profile.py install --project /path/to/research-project --agents codex claude cursor --dry-run
-python3 tools/profile.py install --project /path/to/research-project --agents codex claude cursor
-python3 tools/profile.py check --project /path/to/research-project --agents codex claude cursor
+python3 tools/profile.py install --project /path/to/research-project --dry-run
+python3 tools/profile.py install --project /path/to/research-project
+python3 tools/profile.py check --project /path/to/research-project
 ```
 
-安装器从 `profile.json` 指定的共同规则生成平台入口，将 Skill 和工具安装到项目中；已有内容和安装历史由安装器处理。安装后的工具位置稳定为 `.agent-experience/agent-paper-writing/tools/paper.py`。进入研究项目并开始新会话，再让 agent 按论文写作规则处理实际任务。
+`--agents` 接受 `codex claude cursor gemini antigravity`，默认操作全部五平台；例如 `--agents gemini antigravity` 只选择两个 Google 平台。安装器从 `profile.json` 指定的共同规则生成项目入口：Codex/Antigravity 共用内联 `AGENTS.md`，Gemini 用 `GEMINI.md` 原生相对导入；这三个平台共用 `.agents/skills`。已有内容和安装历史由安装器处理。配置不修改全局 `context.fileName`、权限、账户认证或模型设置。
+
+安装后的工具位置稳定为 `.agent-experience/agent-paper-writing/tools/paper.py`。进入研究项目并开始新会话，再让 agent 按论文写作规则处理实际任务。完整入口、升级、客户端核对及两个仓库同时安装的步骤见 [平台兼容说明](docs/platforms.md)。
 
 ## 使用写作规则
 
 先读 [原始要求](requirements.md) 和 [权威规则](skills/paper-writing/references/rules.md)。按 [流程](skills/paper-writing/references/workflow.md) 明确研究问题、主张和证据，使用 [模板](skills/paper-writing/assets/templates.md) 保留术语、实验论证、图表检查及轮次记录。[参考资料](skills/paper-writing/references/reading.md) 给出可核验的写作方法与论文示例。
 
-三个平台共享同一份权威规则；规则更新后重新安装。规则约束写作选择，编译工具保存真实操作证据。结果质量仍需要研究判断和实际查看。
+五个平台共享同一份权威规则；规则更新后重新安装。规则约束写作选择，编译工具保存真实操作证据。结果质量仍需要研究判断和实际查看。
 
 ## 保存编译与页面
 
@@ -63,13 +65,13 @@ python3 .agent-experience/agent-paper-writing/tools/paper.py status --revision .
 
 ```bash
 git pull --ff-only
-python3 tools/profile.py install --project /path/to/research-project --agents codex claude cursor
-python3 tools/profile.py check --project /path/to/research-project --agents codex claude cursor
-python3 tools/profile.py uninstall --project /path/to/research-project --agents codex claude cursor --dry-run
-python3 tools/profile.py uninstall --project /path/to/research-project --agents codex claude cursor
+python3 tools/profile.py install --project /path/to/research-project
+python3 tools/profile.py check --project /path/to/research-project
+python3 tools/profile.py uninstall --project /path/to/research-project --dry-run
+python3 tools/profile.py uninstall --project /path/to/research-project
 ```
 
-卸载项目安装前可先查看预览。论文源码与 `.paper-runs/` 是项目工作产物，按项目自己的保存要求维护。
+旧三平台用户在 `git pull` 后执行默认 `install`、`check` 即加入五平台；只保留原三平台则在命令中显式加 `--agents codex claude cursor`。卸载前可先查看预览。共享入口和技能等到最后一个使用它的平台卸载后才移除。论文源码与 `.paper-runs/` 是项目工作产物，按项目自己的保存要求维护。
 
 开发验证：
 

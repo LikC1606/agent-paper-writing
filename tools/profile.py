@@ -16,13 +16,19 @@ import tempfile
 import uuid
 
 
-AGENTS = ("codex", "claude", "cursor")
+AGENTS = ("codex", "claude", "cursor", "gemini", "antigravity")
 SKILL_DIRS = {
     "codex": ".agents/skills",
     "claude": ".claude/skills",
     "cursor": ".cursor/skills",
+    "gemini": ".agents/skills",
+    "antigravity": ".agents/skills",
 }
-ENTRY_FILES = {"codex": "AGENTS.md", "claude": "CLAUDE.md"}
+ENTRY_FILES = {
+    "codex": "AGENTS.md", "claude": "CLAUDE.md",
+    "gemini": "GEMINI.md", "antigravity": "AGENTS.md",
+}
+ANTIGRAVITY_RULE_BYTES = 24_000
 NOTE = "Checks cover installed files and configuration; real agent behavior needs a separate check."
 
 
@@ -154,6 +160,35 @@ def render_block(source: dict) -> str:
     )
 
 
+def entry_names(agents: list[str]) -> list[str]:
+    return list(dict.fromkeys(ENTRY_FILES[agent] for agent in agents if agent in ENTRY_FILES))
+
+
+def render_entry(source: dict, name: str) -> str:
+    if name != "GEMINI.md":
+        return render_block(source)
+    metadata = source["metadata"]
+    start, end = markers(metadata["id"])
+    base = f".agent-experience/{metadata['id']}/skills/{metadata['skill']}"
+    return (
+        f"{start}\n## {metadata['title']}\n\n"
+        f"@./{base}/references/rules.md\n\n"
+        f"详细流程（相对于项目根目录）：[SKILL.md]({base}/SKILL.md)。\n{end}"
+    )
+
+
+def check_antigravity_size(project: Path, agents: list[str], changes: dict | None = None) -> None:
+    if "antigravity" not in agents:
+        return
+    content = changes["AGENTS.md"] if changes and "AGENTS.md" in changes else read_file(project, "AGENTS.md")
+    if content is not None and len(content) > ANTIGRAVITY_RULE_BYTES:
+        raise Conflict(
+            f"AGENTS.md is {len(content)} bytes; Antigravity limits each expanded rule file to "
+            f"{ANTIGRAVITY_RULE_BYTES} bytes. Preserving project files; shorten or reorganize existing "
+            "instructions before installing this platform. This check covers the direct file only."
+        )
+
+
 def cursor_rule(source: dict) -> bytes:
     title = json.dumps(source["metadata"]["title"], ensure_ascii=False)
     return (f"---\ndescription: {title}\nalwaysApply: true\n---\n\n{render_block(source)}\n").encode()
@@ -165,7 +200,7 @@ def scope_roots(metadata: dict, agents: list[str], shared: bool) -> list[str]:
         roots.append(f".cursor/rules/{metadata['id']}.mdc")
     if shared:
         roots.append(f".agent-experience/{metadata['id']}")
-    return roots
+    return list(dict.fromkeys(roots))
 
 
 def in_scope(relative: str, roots: list[str]) -> bool:
@@ -291,11 +326,8 @@ def plan_install(project: Path, source: dict, agents: list[str], state: dict) ->
                 next_state["files"][relative] = digest(new)
         except Conflict as error:
             errors.append(str(error))
-    new_block = render_block(source)
-    for agent in agents:
-        if agent not in ENTRY_FILES:
-            continue
-        name = ENTRY_FILES[agent]
+    for name in entry_names(agents):
+        new_block = render_entry(source, name)
         try:
             old = read_file(project, name)
             text = decode_entry(old, name)
@@ -317,6 +349,7 @@ def plan_install(project: Path, source: dict, agents: list[str], state: dict) ->
     if errors:
         raise Conflict("\n".join(dict.fromkeys(errors)))
     next_state["agents"] = [agent for agent in AGENTS if agent in set(state["agents"]) | set(agents)]
+    check_antigravity_size(project, next_state["agents"], changes)
     return changes, next_state
 
 
@@ -324,21 +357,21 @@ def plan_uninstall(project: Path, source: dict, agents: list[str], state: dict) 
     metadata = source["metadata"]
     selected = [agent for agent in agents if agent in state["agents"]]
     remaining = [agent for agent in state["agents"] if agent not in selected]
-    roots = scope_roots(metadata, selected, not remaining)
+    remaining_roots = scope_roots(metadata, remaining, False)
+    roots = [root for root in scope_roots(metadata, selected, not remaining) if root not in remaining_roots]
     errors = verify_owned_files(project, state, roots)
     changes = {name: None for name in state["files"] if in_scope(name, roots)}
     next_state = json.loads(json.dumps(state))
     next_state["files"] = {name: checksum for name, checksum in state["files"].items() if not in_scope(name, roots)}
-    for agent in selected:
-        if agent not in ENTRY_FILES:
+    for name in entry_names(selected):
+        if name in entry_names(remaining):
             continue
-        name = ENTRY_FILES[agent]
         try:
             old = read_file(project, name)
             text = decode_entry(old, name)
             record = state["blocks"].get(name)
             if record is None:
-                raise Conflict(f"Missing ownership record for installed platform: {agent}")
+                raise Conflict(f"Missing ownership record for installed entry: {name}")
             span = owned_block(text, metadata["id"], record, name)
             left, right = span
             prefix = record.get("prefix", "")
@@ -436,11 +469,8 @@ def check_installation(project: Path, source: dict, agents: list[str], state: di
                 errors.append(f"Installation manifest differs from the current source: {name}")
         except Conflict as error:
             errors.append(str(error))
-    expected_block = render_block(source)
-    for agent in agents:
-        if agent not in ENTRY_FILES:
-            continue
-        name = ENTRY_FILES[agent]
+    for name in entry_names(agents):
+        expected_block = render_entry(source, name)
         try:
             text = decode_entry(read_file(project, name), name)
             record = state["blocks"].get(name)
@@ -449,6 +479,10 @@ def check_installation(project: Path, source: dict, agents: list[str], state: di
                 errors.append(f"Managed block differs from the current source: {name}")
         except Conflict as error:
             errors.append(str(error))
+    try:
+        check_antigravity_size(project, agents)
+    except Conflict as error:
+        errors.append(str(error))
     return {"status": "error" if errors else "ok", "id": metadata["id"], "agents": agents,
             "errors": list(dict.fromkeys(errors)), "note": NOTE}
 

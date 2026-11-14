@@ -40,7 +40,7 @@ Cursor 的 `.mdc` 入口、`alwaysApply: true` 和文件安装状态已检查；
 
 ## Skill
 
-`quick_validate.py` 校验通过。原始 13 条要求保存在 `requirements.md`；三平台共同使用 `skills/paper-writing/references/rules.md`，不另维护三份规则副本。参考资料保留来源链接和适用点，未将整份原文放入仓库。
+`quick_validate.py` 校验通过。原始 13 条要求保存在 `requirements.md`；初版三平台共同使用 `skills/paper-writing/references/rules.md`，不另维护三份规则副本。参考资料保留来源链接和适用点，未将整份原文放入仓库。
 
 ## 使用边界
 
@@ -48,3 +48,15 @@ Cursor 的 `.mdc` 入口、`alwaysApply: true` 和文件安装状态已检查；
 - `pdflatex`、`xelatex` 和 `lualatex` 路径运行两遍，不单独编排 BibTeX/Biber。特殊流程沿用项目已有 `latexmk` 配置或自有构建命令。
 - 视觉记录依赖检查者实际查看页面。工具验证记录完整性及其与 PDF、图片的对应关系，不能验证填写者是否确实查看，也不自动作研究质量判断。
 - 源码快照排除历史运行目录及生成环境。外部依赖材料需要整理到论文源或由现有构建流程显式生成；符号链接需要先整理为项目内实际文件。
+
+## Gemini CLI 与 Antigravity 兼容验证
+
+本轮在 Linux、Python 3.12 环境运行整仓库测试：21 项全部通过，其中共享安装器 13 项、原有运行/论文工具 8 项。安装器覆盖默认五平台、Google 平台独立安装/升级/卸载、双 profile 共存、共享技能和入口的不同卸载顺序、版本 1 的三平台状态增量扩展、手改保护与预览不写入。Antigravity 的直接 `AGENTS.md` 文件在 24,000 bytes 时通过，超过一字节时拒绝安装/检查且保留现场。
+
+另用初版真实安装器先创建两个 profile 的三平台安装，再以新版升级为五平台。19 条集成命令全部成功；原有 8 个历史收据文件的哈希未变，每个 profile 在 `AGENTS.md` 中仅有一个完整规则区域。局部卸载保留仍需使用的共享入口、技能与另一 profile。
+
+使用 Google 发布的 `@google/gemini-cli-core` 0.68.0 直接运行原生 `processImports` 和 `loadSkillsFromDir`：生成的 `GEMINI.md` 导入全部 C01–C14、P01–P13 正文，并从 `.agents/skills` 发现两个技能。该检查验证真实导入解析与技能读取，没有发起 Gemini 模型请求，也未修改机器全局设置。
+
+本机 Antigravity CLI 的有限只读加载探针在 45 秒内未取得模型答复，随后停止等待并保留超时记录。因此 Antigravity 已完成官方文件约定、安装和共享资源行为验证，尚未取得模型会话加载/遵循规则的成功证据。进入客户端后仍应按 [平台说明](docs/platforms.md) 核对实际 Rules、Skills 和小任务行为。
+
+初版三平台及论文真实构建的既有验证记录按其原范围保留。此次只扩展项目级安装适配，规则正文、实验运行工具与论文构建工具的行为保持原合同。
