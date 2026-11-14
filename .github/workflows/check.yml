@@ -8,9 +8,48 @@ jobs:
     strategy:
       matrix:
         python: ['3.10', '3.12']
+    env:
+      CI_EVIDENCE_DIR: ${{ runner.temp }}/agent-paper-writing-checks
+      PROFILE_TEST_ARTIFACT_DIR: ${{ runner.temp }}/agent-paper-writing-checks/profile
+      PAPER_TEST_ARTIFACT_DIR: ${{ runner.temp }}/agent-paper-writing-checks/paper
+      PAPER_TEST_REQUIRE_REAL_BUILD: '1'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
-      - run: python -m unittest discover -s tests -v
+      - name: Install the real PDF toolchain
+        shell: bash
+        run: |
+          mkdir -p "$CI_EVIDENCE_DIR"
+          cat > "$CI_EVIDENCE_DIR/commands.txt" <<'COMMANDS'
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y texlive-latex-base poppler-utils
+          python --version
+          pdflatex --version
+          pdftoppm -v
+          dpkg-query -W texlive-latex-base poppler-utils
+          PAPER_TEST_REQUIRE_REAL_BUILD=1 python -m unittest discover -s tests -v
+          COMMANDS
+          sudo apt-get update 2>&1 | tee "$CI_EVIDENCE_DIR/apt-update.log"
+          sudo apt-get install --no-install-recommends -y texlive-latex-base poppler-utils 2>&1 | tee "$CI_EVIDENCE_DIR/apt-install.log"
+          {
+            python --version
+            command -v pdflatex
+            pdflatex --version
+            command -v pdftoppm
+            pdftoppm -v
+            dpkg-query -W texlive-latex-base poppler-utils
+          } 2>&1 | tee "$CI_EVIDENCE_DIR/toolchain.log"
+      - name: Run all tests including the required real PDF build
+        shell: bash
+        run: python -m unittest discover -s tests -v 2>&1 | tee "$CI_EVIDENCE_DIR/unittest.log"
+      - name: Preserve test evidence even when a step fails
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: writing-checks-python-${{ matrix.python }}
+          path: ${{ env.CI_EVIDENCE_DIR }}
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14

@@ -15,8 +15,16 @@ PDFLATEX = shutil.which("pdflatex")
 PDFTOPPM = shutil.which("pdftoppm")
 
 
-@unittest.skipUnless(PDFLATEX and PDFTOPPM, "Real paper integration requires pdflatex and Poppler pdftoppm")
 class RealPaperBuildTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        missing = [name for name, path in (("pdflatex", PDFLATEX), ("pdftoppm", PDFTOPPM)) if not path]
+        if missing:
+            message = "Real paper integration requires " + ", ".join(missing)
+            if os.environ.get("PAPER_TEST_REQUIRE_REAL_BUILD") == "1":
+                raise RuntimeError(message + "; required by PAPER_TEST_REQUIRE_REAL_BUILD=1")
+            raise unittest.SkipTest(message)
+
     def test_real_latex_and_poppler_leave_each_revision_awaiting_visual_review(self):
         # P09/P12: real PDF/pages establish a build, never an automatic visual pass.
         artifacts = os.environ.get("PAPER_TEST_ARTIFACT_DIR")

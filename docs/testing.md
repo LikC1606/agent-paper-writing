@@ -13,11 +13,19 @@ python3 -m unittest discover -s tests -v
 
 本轮新增 17 项：`test_paper.py` 的 12 项工具行为测试、`test_paper_integration.py` 的 1 项真实编译集成，以及 `test_requirement_contract.py` 的 4 项原文、打包与迁移测试。本机共 38 项通过。
 
-真实集成用已有 `pdflatex` 和 Poppler `pdftoppm` 编译两页小论文，核对新 PDF、PNG、两遍编译记录和待视觉检查状态。依赖缺失时该项明确 `skip`，其他测试继续运行；CI 不因此声称完成真实编译。单独运行：
+真实集成用已有 `pdflatex` 和 Poppler `pdftoppm` 编译两页小论文，核对新 PDF、PNG、两遍编译记录和待视觉检查状态。本地依赖缺失时该项明确 `skip`，其他测试继续运行。单独运行：
 
 ```bash
 python3 -m unittest discover -s tests -p test_paper_integration.py -v
 ```
+
+CI 在 Ubuntu 安装 `texlive-latex-base` 和 `poppler-utils`，使用 `--no-install-recommends`；两页 fixture 只使用 `article`、基本表格和交叉引用，不依赖额外 LaTeX 宏包。Python 3.10、3.12 两个任务均设置 `PAPER_TEST_REQUIRE_REAL_BUILD=1`，缺少 `pdflatex` 或 `pdftoppm` 会失败，不能以跳过集成取得通过。要在本地要求相同条件：
+
+```bash
+PAPER_TEST_REQUIRE_REAL_BUILD=1 python3 -m unittest discover -s tests -p test_paper_integration.py -v
+```
+
+CI 无论成功或失败都上传 `writing-checks-python-<版本>` artifact，保留 14 天。其中包括依赖安装与版本日志、测试命令和输出，以及临时案例的源码、命令记录、失败日志、PDF、页面和检查表；隐藏的 `.paper-runs` 也包含在内。artifact 仅来自独立测试现场，不收集账户配置、凭据或原始模型会话。真实构建通过仍只证明编译和渲染完成，不代表视觉质量通过。
 
 需要保留所有测试现场时，选择全新轮次：
 
