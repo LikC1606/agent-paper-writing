@@ -83,10 +83,12 @@ class AgentHarnessTests(unittest.TestCase):
 
     def test_timeout_preserves_partial_output(self):
         result = harness.execute(self.run, timeout=0.15,
-                                 command=self.command("import time; print('started', flush=True); time.sleep(30)"))
+                                 command=self.command("import time; print('started', flush=True); "
+                                     "print('{\"event\":\"result\",\"result\":{\"status\":\"ERROR\",\"error\":\"upstream 502\"}}', flush=True); time.sleep(30)"))
         self.assertEqual(result["status"], "timed_out")
         self.assertEqual(result["returncode"], 124)
         self.assertIn("started", (self.run / "stdout.jsonl").read_text())
+        self.assertEqual(result["native_status"], "ERROR")
 
     def test_retry_does_not_overwrite_a_recorded_execution(self):
         harness.execute(self.run, command=self.command("print('original')"))
@@ -120,6 +122,17 @@ class AgentHarnessTests(unittest.TestCase):
         record_path.write_text(json.dumps(self.template))
         with self.assertRaisesRegex(ValueError, "every required and forbidden"):
             harness.review(self.run, record_path)
+
+    def test_antigravity_error_result_cannot_be_hidden_by_zero_exit(self):
+        # This event/result schema was observed in the real CLI's 502 response.
+        event = {"event": "result", "result": {"status": "ERROR", "response": "",
+                 "error": "Upstream service temporarily unavailable", "finished_reason": "interrupted"}}
+        result = harness.execute(self.run, command=self.command("import json; print(json.dumps(" + repr(event) + "))"))
+        self.assertEqual(result["returncode"], 0)
+        self.assertEqual(result["status"], "execution_error")
+        self.assertEqual(result["native_status"], "ERROR")
+        self.assertIn("Upstream", result["native_error"])
+        self.assertEqual(harness.review(self.run, self.completed_record())["status"], "unverified")
 
     def test_review_cannot_claim_missing_evidence_or_hide_unverified_checks(self):
         harness.execute(self.run, command=self.command("print('saved evidence')"))

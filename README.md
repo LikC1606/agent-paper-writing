@@ -83,4 +83,6 @@ python3 -m unittest discover -s tests -v
 
 验证范围和实际结果见 [verification.md](verification.md)。
 
-[逐条测试说明](docs/testing.md) 包含 51 项自动检查、P01–P13 的真实客户端验收命令，以及 CI 的编译依赖和测试现场保存方式；实际页面查看与辅助续跑分别记录。
+[逐条测试说明](docs/testing.md) 包含 52 项自动检查、P01–P13 的真实客户端验收命令，以及 CI 的编译依赖和测试现场保存方式；实际页面查看与辅助续跑分别记录。
+
+[真实客户端逐条结果](docs/behavior-results.md) 保存初测、辅助续跑、遗留失败及视觉证据的实际范围。

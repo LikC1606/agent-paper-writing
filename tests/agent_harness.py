@@ -112,7 +112,7 @@ def client_command(client, project, run, executable=None, budget=1.0):
     if client == "gemini":
         return [binary, "--skip-trust", "--approval-mode", "auto_edit", "--output-format", "stream-json", "--prompt", prompt], None
     if client == "antigravity":
-        return [binary, "--mode", "auto", "--sandbox", "--output-format", "stream-json", "--print", prompt], None
+        return [binary, "--mode", "accept-edits", "--sandbox", "--output-format", "stream-json", "--print", prompt], None
     raise ValueError("Cursor client commands vary; pass the verified command as --command-json")
 
 
@@ -185,7 +185,13 @@ def execute(run, timeout=240, executable=None, command=None, budget=1.0):
                 result["reported_cost_usd"] = native.get("total_cost_usd")
                 if isinstance(native.get("result"), str) and not (run / "answer.md").exists():
                     (run / "answer.md").write_text(native["result"], encoding="utf-8")
-                if native.get("is_error") or str(native.get("subtype", "")).startswith("error"):
+                if (native.get("is_error") or str(native.get("subtype", "")).startswith("error")) and result["status"] != "timed_out":
+                    result["status"] = "execution_error"
+            if native.get("event") == "result" and isinstance(native.get("result"), dict):
+                detail = native["result"]
+                result["native_status"] = detail.get("status")
+                result["native_error"] = detail.get("error")
+                if detail.get("status") == "ERROR" and result["status"] != "timed_out":
                     result["status"] = "execution_error"
             if native.get("type") == "turn.completed":
                 result["native_turn_completed"] = True
