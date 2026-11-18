@@ -1,12 +1,21 @@
-# 论文写作经验
+<!-- README_SYNC: source=50d87639cf9f0960bb39a3588d7760e98c6792aa; updated=2026-11-18 -->
 
-把个人的论文写作要求安装到具体研究项目，使 Codex、Claude Code、Cursor、Google Gemini CLI 和 Google Antigravity 使用同一份规则。内容包括原始 13 条约定、写作 Skill、工作流程、参考资料、记录模板，以及保存编译和视觉检查证据的工具。
+简体中文 · [English](./README_EN.md)
 
-`clone` 下载经验仓库；对论文项目执行 `install` 后，才会生成该项目的 agent 入口。每个需要这些规则的研究项目分别安装，范围限于项目。
+# 论文写作经验 · Agent Paper Writing
 
-## 下载与安装
+给论文项目安装一套 Agent 写作规则：用主张和证据组织文章，把图表、编译与逐页检查留在对应的修订轮次。五种客户端使用同一份项目规则。
 
-需要 Python 3.10 或更新版本。先确认 `python3` 的真实解释器和工作目录；已有环境可能把同名命令包装成容器入口。以下将研究项目记为 `/path/to/research-project`。
+觉得这个工作方式有用，可以 [Star 收藏](https://github.com/LikC1606/agent-paper-writing/stargazers)。
+
+[![Stars](https://img.shields.io/github/stars/LikC1606/agent-paper-writing)](https://github.com/LikC1606/agent-paper-writing/stargazers)
+[![Checks](https://github.com/LikC1606/agent-paper-writing/actions/workflows/check.yml/badge.svg)](https://github.com/LikC1606/agent-paper-writing/actions/workflows/check.yml)
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB)](./tools/profile.py)
+[![Issues](https://img.shields.io/github/issues/LikC1606/agent-paper-writing)](https://github.com/LikC1606/agent-paper-writing/issues)
+
+## 安装到论文项目
+
+需要 Git 和 Python 3.10 或更新版本。若本机的 `python3` 是容器包装命令，先核对实际解释器和工作目录。
 
 ```bash
 git clone https://github.com/LikC1606/agent-paper-writing.git
@@ -16,73 +25,45 @@ python3 tools/profile.py install --project /path/to/research-project
 python3 tools/profile.py check --project /path/to/research-project
 ```
 
-`--agents` 接受 `codex claude cursor gemini antigravity`，默认操作全部五平台；例如 `--agents gemini antigravity` 只选择两个 Google 平台。安装器从 `profile.json` 指定的共同规则生成项目入口：Codex/Antigravity 共用内联 `AGENTS.md`，Gemini 用 `GEMINI.md` 原生相对导入；这三个平台共用 `.agents/skills`。已有内容和安装历史由安装器处理。配置不修改全局 `context.fileName`、权限、账户认证或模型设置。
+默认安装到指定项目的 Codex、Claude Code、Cursor、Gemini CLI 和 Antigravity 入口。用 `--agents gemini antigravity` 等参数选择客户端。安装器保留已有项目内容和历史；账户、权限和全局配置继续由客户端管理。在论文项目新开会话，核对客户端是否实际读到了规则。入口、兼容和更新方式见[平台说明](./docs/platforms.md)。
 
-安装后的工具位置稳定为 `.agent-experience/agent-paper-writing/tools/paper.py`。进入研究项目并开始新会话，再让 agent 按论文写作规则处理实际任务。完整入口、升级、客户端核对及两个仓库同时安装的步骤见 [平台兼容说明](docs/platforms.md)。
+## 从论证到可查看的 PDF
 
-## 使用写作规则
-
-先读 [原始要求](requirements.md) 和 [权威规则](skills/paper-writing/references/rules.md)。按 [流程](skills/paper-writing/references/workflow.md) 明确研究问题、主张和证据，使用 [模板](skills/paper-writing/assets/templates.md) 保留术语、实验论证、图表检查及轮次记录。[参考资料](skills/paper-writing/references/reading.md) 给出可核验的写作方法与论文示例。
-
-五个平台共享同一份权威规则；规则更新后重新安装。规则约束写作选择，编译工具保存真实操作证据。结果质量仍需要研究判断和实际查看。
-
-## 保存编译与页面
-
-构建需要已有 LaTeX 引擎，以及 Poppler 的 `pdftoppm`。例如 Ubuntu 可安装 `latexmk`、论文所需的 TeX Live 包和 `poppler-utils`；其他环境沿用项目已有引擎。工具本身只用 Python 标准库，不自动安装这些依赖。
-
-在论文项目中执行：
+1. 用[原始 13 条约定](./requirements.md)和[共同规则](./skills/paper-writing/references/rules.md)对齐研究问题、主张、证据与术语。
+2. 通过[写作 Skill](./skills/paper-writing/SKILL.md)、[流程](./skills/paper-writing/references/workflow.md)、[模板](./skills/paper-writing/assets/templates.md)和[写作参考](./skills/paper-writing/references/reading.md)准备正文、图表及检查记录。
+3. 在论文项目中运行下方命令。需要已有 LaTeX 引擎及 Poppler 的 `pdftoppm`；工具不安装这些依赖。
 
 ```bash
 python3 .agent-experience/agent-paper-writing/tools/paper.py build --project . --source main.tex --engine latexmk
 ```
 
-每次调用新建 `.paper-runs/<独立轮次>/`：先快照论文项目，保存源码哈希和 Git 状态，再在快照中编译到该轮 `build/`，将 PDF 全部页面渲染到 `pages/`，保存命令、日志及检查表。项目范围应是专用论文目录；`.git`、`.agent-experience`、`.paper-runs`、实验工具的 `runs`、虚拟环境等生成目录不进入源码快照。复现所需图、表和数据应放在论文源目录中，或由已有构建流程显式生成；外部实验结果保留可追溯索引。用重复的 `--exclude 相对路径` 排除无关文件或目录；符号链接应先整理为项目内的实际文件，以便快照可复现。
-
-`--engine auto` 优先使用现有 `latexmk`、`tectonic`，随后尝试 `pdflatex`、`xelatex`、`lualatex`。后三种引擎运行两遍，不额外编排 BibTeX/Biber；有文献或特殊构建步骤时使用项目已有 `latexmk` 配置或构建命令。
-
-例如项目已有接受输出目录的脚本：
+每次构建会在 `.paper-runs/` 新建轮次，在源码快照中编译，保存 Git 状态、源码哈希、命令和日志。PDF 在该轮的 `build/`，全部页面渲染到 `pages/`。项目目录应专用于论文；需要排除无关文件可重复传 `--exclude`，外部实验结果保留可追溯索引。已有构建脚本且能指定输出位置时，可改用：
 
 ```bash
 python3 .agent-experience/agent-paper-writing/tools/paper.py build --project . --source paper.tex --pdf-name paper.pdf -- ./build-paper.sh '{output}'
 ```
 
-`--` 后是直接执行的参数列表，支持 `{source}`（主文件相对路径）、`{workspace}`（本轮源码快照）和 `{output}`（本轮构建目录）。命令在源码快照中执行，需要把新 PDF 写到 `{output}`；shell 管道等逻辑保留在已有脚本中。可用 `--output-root /path/to/paper-revisions` 指定统一存储位置，用 `--renderer /path/to/pdftoppm` 指定实际渲染器。
+## 记录逐页检查
 
-## 实际查看并记录
-
-`build` 成功返回 `awaiting_visual_review`。先打开输出的 PDF 或 `pages/page-*.png`，逐页查看；再复制本轮 `review-template.json` 为自己的检查记录，填入检查者和逐页发现。七项检查为尺寸、位置、字体、留白、对齐、可读性及论证对应关系，填写 JSON 布尔值 `true` / `false`；有任何未通过项，该页 `status` 写 `fail`，全部通过才写 `pass`。
-
-保留表单中本轮的 `revision_id`。即使两轮 PDF 字节相同，也不能提交上一轮的检查记录。没有该字段的旧表单须新建轮次并重新查看；已经归档的旧状态仍可读取，历史文件不改写。
+构建成功的轮次显示 `awaiting_visual_review`。打开当轮 PDF 或渲染页，复制当轮的 `review-template.json` 填入检查者和逐页发现。七项检查包括尺寸、位置、字体、留白、对齐、可读性及图文是否支持论证，任何一项未通过都要将对应页标为 `fail`。
 
 ```bash
-python3 .agent-experience/agent-paper-writing/tools/paper.py review --revision .paper-runs/本轮目录 --record /path/to/completed-review.json
-python3 .agent-experience/agent-paper-writing/tools/paper.py status --revision .paper-runs/本轮目录
+python3 .agent-experience/agent-paper-writing/tools/paper.py review --revision .paper-runs/REVISION --record /path/to/completed-review.json
+python3 .agent-experience/agent-paper-writing/tools/paper.py status --revision .paper-runs/REVISION
 ```
 
-检查记录验证必须覆盖所有页面并写明实际发现，且绑定当前 PDF 与渲染页。它保存填写者声明的视觉检查，不自动判断记录者是否真的看过页面。每次登记都保存新文件，旧记录保留。
+检查记录绑定当前轮的 `revision_id`、PDF 和渲染页。它验证记录覆盖与格式；是否实际查看由检查者负责。修复失败后新建轮次，保留历史。长期归档按论文项目的存储约定办理。
 
-编译、渲染或视觉检查失败均返回非零状态。保留失败轮次，定位并修复原项目后再次 `build`，新轮次不会覆盖旧 PDF、源码或日志。长期运行记录应纳入当前项目约定的私有持久存储；经验仓库的 Git 历史用于迁移规则与工具。
+## 更新和验证
 
-## 更新、卸载与检查
+拉取源仓库更新后重跑安装，先预览规则差异；卸载也支持预览。
 
 ```bash
 git pull --ff-only
-python3 tools/profile.py install --project /path/to/research-project
-python3 tools/profile.py check --project /path/to/research-project
 python3 tools/profile.py uninstall --project /path/to/research-project --dry-run
-python3 tools/profile.py uninstall --project /path/to/research-project
-```
-
-旧三平台用户在 `git pull` 后执行默认 `install`、`check` 即加入五平台；只保留原三平台则在命令中显式加 `--agents codex claude cursor`。卸载前可先查看预览。共享入口和技能等到最后一个使用它的平台卸载后才移除。论文源码与 `.paper-runs/` 是项目工作产物，按项目自己的保存要求维护。
-
-开发验证：
-
-```bash
 python3 -m unittest discover -s tests -v
 ```
 
-验证范围和实际结果见 [verification.md](verification.md)。
+[验证范围](./verification.md)、[检查方法](./docs/testing.md)和[真实客户端结果](./docs/behavior-results.md)分别说明验证环境、复现步骤和行为证据。需要同时管理训练和评测时，可在同一项目加装 [Agent Engineering](https://github.com/LikC1606/agent-engineering)。
 
-[逐条测试说明](docs/testing.md) 包含 52 项自动检查、P01–P13 的真实客户端验收命令，以及 CI 的编译依赖和测试现场保存方式；实际页面查看与辅助续跑分别记录。
-
-[真实客户端逐条结果](docs/behavior-results.md) 保存初测、辅助续跑、遗留失败及视觉证据的实际范围。
+发现安装、编译或视觉检查流程的问题，可以带上最小复现[开 Issue](https://github.com/LikC1606/agent-paper-writing/issues)。
