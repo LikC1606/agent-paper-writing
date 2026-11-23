@@ -1,17 +1,16 @@
-<!-- README_SYNC: source=50d87639cf9f0960bb39a3588d7760e98c6792aa; updated=2026-11-18 -->
-
-简体中文 · [English](./README_EN.md)
+<!-- README_SYNC: source=50d87639cf9f0960bb39a3588d7760e98c6792aa; updated=2026-11-23 -->
+<p align="center">简体中文 · <a href="./README_EN.md" lang="en">English</a></p>
 
 # 论文写作经验 · Agent Paper Writing
 
-给论文项目安装一套 Agent 写作规则：用主张和证据组织文章，把图表、编译与逐页检查留在对应的修订轮次。五种客户端使用同一份项目规则。
-
-觉得这个工作方式有用，可以 [Star 收藏](https://github.com/LikC1606/agent-paper-writing/stargazers)。
+给论文项目装上一套跨五种客户端共享的 Agent 写作规则：以主张和证据组织全文，把图表、LaTeX 编译快照与逐页视觉检查绑定在同一修订轮次中，确保每次反馈都能追溯到对应 PDF。
 
 [![Stars](https://img.shields.io/github/stars/LikC1606/agent-paper-writing)](https://github.com/LikC1606/agent-paper-writing/stargazers)
 [![Checks](https://github.com/LikC1606/agent-paper-writing/actions/workflows/check.yml/badge.svg)](https://github.com/LikC1606/agent-paper-writing/actions/workflows/check.yml)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB)](./tools/profile.py)
 [![Issues](https://img.shields.io/github/issues/LikC1606/agent-paper-writing)](https://github.com/LikC1606/agent-paper-writing/issues)
+
+觉得这套论文修订工作流有用，欢迎 [Star 收藏](https://github.com/LikC1606/agent-paper-writing/stargazers)。
 
 ## 安装到论文项目
 

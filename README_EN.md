@@ -1,17 +1,16 @@
-<!-- README_SYNC: source=50d87639cf9f0960bb39a3588d7760e98c6792aa; updated=2026-11-18 -->
-
-[简体中文](./README.md) · English
+<!-- README_SYNC: source=50d87639cf9f0960bb39a3588d7760e98c6792aa; updated=2026-11-23 -->
+<p align="center"><a href="./README.md" lang="zh-CN">简体中文</a> · English</p>
 
 # Agent Paper Writing
 
-Give a manuscript project the same writing rules across five supported clients. Organize claims around evidence, and keep figures, builds, and page checks with the revision they belong to so feedback stays attached to the PDF you inspected.
-
-[Star the repository](https://github.com/LikC1606/agent-paper-writing/stargazers) if you want to revisit the workflow.
+Give a manuscript project one shared set of writing rules across five supported coding clients. Organize claims around evidence, and bind figures, LaTeX build snapshots, and per-page visual checks to each revision so feedback always stays attached to the PDF you inspected.
 
 [![Stars](https://img.shields.io/github/stars/LikC1606/agent-paper-writing)](https://github.com/LikC1606/agent-paper-writing/stargazers)
 [![Checks](https://github.com/LikC1606/agent-paper-writing/actions/workflows/check.yml/badge.svg)](https://github.com/LikC1606/agent-paper-writing/actions/workflows/check.yml)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB)](./tools/profile.py)
 [![Issues](https://img.shields.io/github/issues/LikC1606/agent-paper-writing)](https://github.com/LikC1606/agent-paper-writing/issues)
+
+[Star the repository](https://github.com/LikC1606/agent-paper-writing/stargazers) to keep this reproducible manuscript workflow handy.
 
 ## Install into a manuscript project
 
