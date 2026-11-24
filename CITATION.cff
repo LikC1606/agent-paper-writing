@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use Agent Paper Writing in your research, please cite this repository."
+type: software
+title: "Agent Paper Writing: Shared Rules and Auditable LaTeX Revision Workflows"
+authors:
+  - family-names: Liu
+    given-names: Zhenhao
+    affiliation: "WestlakeNLP, Westlake University"
+    website: https://likc1606.github.io/
+repository-code: https://github.com/LikC1606/agent-paper-writing
+url: https://github.com/LikC1606/agent-paper-writing
+license: MIT
+keywords:
+  - ai-agents
+  - academic-writing
+  - latex
+  - codex
+  - claude-code
