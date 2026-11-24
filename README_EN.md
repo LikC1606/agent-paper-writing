@@ -8,6 +8,7 @@ Give a manuscript project one shared set of writing rules across five supported 
 [![Stars](https://img.shields.io/github/stars/LikC1606/agent-paper-writing)](https://github.com/LikC1606/agent-paper-writing/stargazers)
 [![Checks](https://github.com/LikC1606/agent-paper-writing/actions/workflows/check.yml/badge.svg)](https://github.com/LikC1606/agent-paper-writing/actions/workflows/check.yml)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB)](./tools/profile.py)
+[![License: MIT](https://img.shields.io/badge/license-MIT-2f855a)](./LICENSE)
 [![Issues](https://img.shields.io/github/issues/LikC1606/agent-paper-writing)](https://github.com/LikC1606/agent-paper-writing/issues)
 
 [Star the repository](https://github.com/LikC1606/agent-paper-writing/stargazers) to keep this reproducible manuscript workflow handy.
@@ -65,4 +66,4 @@ python3 -m unittest discover -s tests -v
 
 The [verification scope](./verification.md), [test instructions](./docs/testing.md), and [client results](./docs/behavior-results.md) document the environment, reproduction steps, and observed behavior. Use [Agent Engineering](https://github.com/LikC1606/agent-engineering) alongside this profile to track experiments and evaluations.
 
-For an installation, build, or review problem, share a minimal reproduction in [Issues](https://github.com/LikC1606/agent-paper-writing/issues).
+For an installation, build, or review problem, share a minimal reproduction in [Issues](https://github.com/LikC1606/agent-paper-writing/issues). Released under the [MIT License](./LICENSE).

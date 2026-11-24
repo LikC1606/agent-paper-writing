@@ -8,6 +8,7 @@
 [![Stars](https://img.shields.io/github/stars/LikC1606/agent-paper-writing)](https://github.com/LikC1606/agent-paper-writing/stargazers)
 [![Checks](https://github.com/LikC1606/agent-paper-writing/actions/workflows/check.yml/badge.svg)](https://github.com/LikC1606/agent-paper-writing/actions/workflows/check.yml)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB)](./tools/profile.py)
+[![License: MIT](https://img.shields.io/badge/license-MIT-2f855a)](./LICENSE)
 [![Issues](https://img.shields.io/github/issues/LikC1606/agent-paper-writing)](https://github.com/LikC1606/agent-paper-writing/issues)
 
 觉得这套论文修订工作流有用，欢迎 [Star 收藏](https://github.com/LikC1606/agent-paper-writing/stargazers)。
@@ -65,4 +66,4 @@ python3 -m unittest discover -s tests -v
 
 [验证范围](./verification.md)、[检查方法](./docs/testing.md)和[真实客户端结果](./docs/behavior-results.md)分别说明验证环境、复现步骤和行为证据。需要同时管理训练和评测时，可在同一项目加装 [Agent Engineering](https://github.com/LikC1606/agent-engineering)。
 
-发现安装、编译或视觉检查流程的问题，可以带上最小复现[开 Issue](https://github.com/LikC1606/agent-paper-writing/issues)。
+发现安装、编译或视觉检查流程的问题，可以带上最小复现[开 Issue](https://github.com/LikC1606/agent-paper-writing/issues)。本项目采用 [MIT 许可证](./LICENSE)。
